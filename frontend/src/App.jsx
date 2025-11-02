@@ -1,7 +1,6 @@
 import axios from "axios";
 import { Download, Key, Lock, Upload, Shield, AlertCircle } from "lucide-react";
 import { useState, useRef } from "react";
-import config from './config';
 
 export default function QuantumShieldFileEncryptor() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -66,12 +65,14 @@ export default function QuantumShieldFileEncryptor() {
       
       console.log("📤 Sending file for encryption:", selectedFile.name);
       
-      const response = await fetch(`${config.API_BASE_URL}/encrypt-file`, {
+      // Use fetch instead of axios for better blob handling
+      const response = await fetch("http://localhost:8000/encrypt-file", {
         method: "POST",
         body: formData,
       });
 
       console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -153,7 +154,8 @@ export default function QuantumShieldFileEncryptor() {
 
       console.log("🔓 Starting decryption...");
 
-      const response = await fetch(`${config.API_BASE_URL}/decrypt-file`, {
+      // Use fetch instead of axios for better blob handling
+      const response = await fetch("http://localhost:8000/decrypt-file", {
         method: "POST",
         body: formData,
       });
@@ -227,33 +229,33 @@ export default function QuantumShieldFileEncryptor() {
   };
 
   return (
-    <div className="quantum-shield-container">
-      <div className="quantum-shield-header">
-        <Shield className="quantum-shield-icon" size={32} />
+    <div className="container">
+      <div className="header">
+        <Shield className="icon-shield" size={32} />
         <h2>QuantumShield File Encryptor</h2>
         <p>Military-grade quantum-resistant file encryption</p>
       </div>
 
       {/* Status Messages */}
       {error && (
-        <div className="quantum-shield-alert quantum-shield-alert-error">
+        <div className="alert alert-error">
           <AlertCircle size={18} />
           {error}
         </div>
       )}
       
       {success && (
-        <div className="quantum-shield-alert quantum-shield-alert-success">
+        <div className="alert alert-success">
           <Shield size={18} />
           {success}
         </div>
       )}
 
       {/* Encryption Section */}
-      <div className="quantum-shield-section">
+      <div className="section">
         <h3>🔒 Encrypt File</h3>
         
-        <div className="quantum-shield-input-group">
+        <div className="input-group">
           <label>
             <Upload size={16} />
             Choose File to Encrypt
@@ -263,10 +265,9 @@ export default function QuantumShieldFileEncryptor() {
             type="file"
             onChange={handleFileSelect}
             accept="*/*"
-            className="quantum-shield-file-input"
           />
           {selectedFile && (
-            <div className="quantum-shield-file-info">
+            <div className="file-info">
               Selected: <strong>{selectedFile.name}</strong> 
               ({(selectedFile.size / 1024).toFixed(2)} KB)
             </div>
@@ -275,7 +276,7 @@ export default function QuantumShieldFileEncryptor() {
 
         <button 
           onClick={handleEncrypt} 
-          className="quantum-shield-btn quantum-shield-btn-primary"
+          className="btn btn-primary"
           disabled={!selectedFile || loading}
         >
           {loading ? (
@@ -288,25 +289,25 @@ export default function QuantumShieldFileEncryptor() {
         </button>
 
         {encryptionResult && (
-          <div className="quantum-shield-result">
+          <div className="result-container">
             <h4>✅ Encryption Successful!</h4>
-            <div className="quantum-shield-result-details">
+            <div className="result-details">
               <p><strong>Original File:</strong> {encryptionResult.file}</p>
               <p><strong>Encrypted File:</strong> {encryptionResult.encryptedFilename}</p>
-              <div className="quantum-shield-key-section">
+              <div className="key-section">
                 <strong>Encryption Key:</strong>
-                <div className="quantum-shield-key-display">
+                <div className="key-display">
                   <code>{encryptionResult.key}</code>
                   <button 
                     onClick={() => copyToClipboard(encryptionResult.key)}
-                    className="quantum-shield-btn-copy"
+                    className="btn-copy"
                     type="button"
                   >
                     Copy
                   </button>
                 </div>
               </div>
-              <div className="quantum-shield-warning">
+              <div className="warning">
                 <AlertCircle size={16} />
                 ⚠️ Save this key securely! You'll need it to decrypt the file.
               </div>
@@ -315,13 +316,13 @@ export default function QuantumShieldFileEncryptor() {
         )}
       </div>
 
-      <hr className="quantum-shield-divider" />
+      <hr className="divider" />
 
       {/* Decryption Section */}
-      <div className="quantum-shield-section">
+      <div className="section">
         <h3>🔓 Decrypt File</h3>
 
-        <div className="quantum-shield-input-group">
+        <div className="input-group">
           <label>
             <Download size={16} />
             Upload Encrypted (.qshield) File
@@ -331,16 +332,15 @@ export default function QuantumShieldFileEncryptor() {
             type="file"
             accept=".qshield"
             onChange={handleEncryptedFileSelect}
-            className="quantum-shield-file-input"
           />
           {encryptedFile && (
-            <div className="quantum-shield-file-info">
+            <div className="file-info">
               Selected: <strong>{encryptedFile.name}</strong>
             </div>
           )}
         </div>
 
-        <div className="quantum-shield-input-group">
+        <div className="input-group">
           <label>
             <Key size={16} />
             Enter Decryption Key
@@ -350,13 +350,13 @@ export default function QuantumShieldFileEncryptor() {
             value={decryptionKey}
             onChange={(e) => setDecryptionKey(e.target.value)}
             placeholder="Paste your encryption key here..."
-            className="quantum-shield-key-input"
+            className="key-input"
           />
         </div>
 
         <button
           onClick={handleDecrypt}
-          className="quantum-shield-btn quantum-shield-btn-secondary"
+          className="btn btn-secondary"
           disabled={!encryptedFile || !decryptionKey.trim() || loading}
           type="button"
         >
@@ -370,7 +370,7 @@ export default function QuantumShieldFileEncryptor() {
         </button>
 
         {decryptedFile && (
-          <div className="quantum-shield-result">
+          <div className="result-container">
             <h4>✅ Decryption Successful!</h4>
             <p>
               File downloaded as <strong>decrypted_{decryptedFile}</strong>
@@ -380,98 +380,85 @@ export default function QuantumShieldFileEncryptor() {
       </div>
 
       {/* Reset Button */}
-      <div className="quantum-shield-footer">
-        <button onClick={resetForm} className="quantum-shield-btn quantum-shield-btn-outline" type="button">
+      <div className="footer">
+        <button onClick={resetForm} className="btn btn-outline" type="button">
           Reset All
         </button>
       </div>
 
-      <style>{`
-        .quantum-shield-container {
+      <style jsx>{`
+        .container {
           max-width: 600px;
           margin: 0 auto;
           padding: 2rem;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         
-        .quantum-shield-header {
+        .header {
           text-align: center;
           margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
         }
         
-        .quantum-shield-icon {
+        .icon-shield {
           color: #10b981;
           margin-bottom: 1rem;
         }
         
-        .quantum-shield-header h2 {
+        .header h2 {
           color: #1f2937;
           margin-bottom: 0.5rem;
-          font-size: 1.5rem;
-          font-weight: 700;
         }
         
-        .quantum-shield-header p {
+        .header p {
           color: #6b7280;
           margin: 0;
-          font-size: 0.95rem;
         }
         
-        .quantum-shield-section {
+        .section {
           margin-bottom: 2rem;
         }
         
-        .quantum-shield-section h3 {
+        .section h3 {
           color: #374151;
           margin-bottom: 1.5rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 1.25rem;
-          font-weight: 600;
         }
         
-        .quantum-shield-input-group {
+        .input-group {
           margin-bottom: 1.5rem;
         }
         
-        .quantum-shield-input-group label {
+        .input-group label {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           font-weight: 600;
           color: #374151;
           margin-bottom: 0.5rem;
-          font-size: 0.95rem;
         }
         
-        .quantum-shield-file-input,
-        .quantum-shield-key-input {
+        .input-group input[type="file"],
+        .input-group input[type="text"] {
           width: 100%;
           padding: 0.75rem;
           border: 2px solid #e5e7eb;
           border-radius: 0.5rem;
           font-size: 1rem;
           transition: border-color 0.2s;
-          box-sizing: border-box;
         }
         
-        .quantum-shield-file-input:focus,
-        .quantum-shield-key-input:focus {
+        .input-group input:focus {
           outline: none;
           border-color: #10b981;
         }
         
-        .quantum-shield-key-input {
-          font-family: 'Courier New', monospace;
+        .key-input {
+          font-family: monospace;
         }
         
-        .quantum-shield-file-info {
+        .file-info {
           margin-top: 0.5rem;
           padding: 0.5rem;
           background: #f8fafc;
@@ -480,7 +467,7 @@ export default function QuantumShieldFileEncryptor() {
           color: #64748b;
         }
         
-        .quantum-shield-btn {
+        .btn {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
@@ -493,43 +480,40 @@ export default function QuantumShieldFileEncryptor() {
           transition: all 0.2s;
         }
         
-        .quantum-shield-btn:disabled {
+        .btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
         
-        .quantum-shield-btn-primary {
+        .btn-primary {
           background: #10b981;
           color: white;
         }
         
-        .quantum-shield-btn-primary:hover:not(:disabled) {
+        .btn-primary:hover:not(:disabled) {
           background: #059669;
-          transform: translateY(-1px);
         }
         
-        .quantum-shield-btn-secondary {
+        .btn-secondary {
           background: #3b82f6;
           color: white;
         }
         
-        .quantum-shield-btn-secondary:hover:not(:disabled) {
+        .btn-secondary:hover:not(:disabled) {
           background: #2563eb;
-          transform: translateY(-1px);
         }
         
-        .quantum-shield-btn-outline {
+        .btn-outline {
           background: transparent;
           border: 2px solid #e5e7eb;
           color: #6b7280;
         }
         
-        .quantum-shield-btn-outline:hover {
+        .btn-outline:hover {
           border-color: #d1d5db;
-          background: #f9fafb;
         }
         
-        .quantum-shield-btn-copy {
+        .btn-copy {
           padding: 0.25rem 0.75rem;
           background: #f1f5f9;
           border: 1px solid #cbd5e1;
@@ -537,14 +521,9 @@ export default function QuantumShieldFileEncryptor() {
           font-size: 0.8rem;
           cursor: pointer;
           white-space: nowrap;
-          transition: background 0.2s;
         }
         
-        .quantum-shield-btn-copy:hover {
-          background: #e2e8f0;
-        }
-        
-        .quantum-shield-result {
+        .result-container {
           margin-top: 1.5rem;
           padding: 1.5rem;
           background: #f0fdf4;
@@ -552,41 +531,39 @@ export default function QuantumShieldFileEncryptor() {
           border-radius: 0.5rem;
         }
         
-        .quantum-shield-result h4 {
+        .result-container h4 {
           color: #065f46;
           margin-bottom: 1rem;
-          font-size: 1.1rem;
         }
         
-        .quantum-shield-result-details p {
+        .result-details p {
           margin: 0.5rem 0;
-          color: #374151;
         }
         
-        .quantum-shield-key-section {
+        .key-section {
           margin: 1rem 0;
         }
         
-        .quantum-shield-key-display {
+        .key-display {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           margin-top: 0.5rem;
         }
         
-        .quantum-shield-key-display code {
+        .key-display code {
           flex: 1;
           padding: 0.5rem;
           background: #1e293b;
           color: #f1f5f9;
           border-radius: 0.25rem;
-          font-family: 'Courier New', monospace;
+          font-family: monospace;
           font-size: 0.9rem;
           word-break: break-all;
           overflow-x: auto;
         }
         
-        .quantum-shield-warning {
+        .warning {
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -599,7 +576,7 @@ export default function QuantumShieldFileEncryptor() {
           font-size: 0.9rem;
         }
         
-        .quantum-shield-alert {
+        .alert {
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -609,29 +586,27 @@ export default function QuantumShieldFileEncryptor() {
           font-weight: 500;
         }
         
-        .quantum-shield-alert-error {
+        .alert-error {
           background: #fef2f2;
           border: 1px solid #fecaca;
           color: #dc2626;
         }
         
-        .quantum-shield-alert-success {
+        .alert-success {
           background: #f0fdf4;
           border: 1px solid #bbf7d0;
           color: #16a34a;
         }
         
-        .quantum-shield-divider {
+        .divider {
           margin: 2rem 0;
           border: none;
           border-top: 1px solid #e5e7eb;
         }
         
-        .quantum-shield-footer {
+        .footer {
           text-align: center;
           margin-top: 2rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid #e5e7eb;
         }
       `}</style>
     </div>
