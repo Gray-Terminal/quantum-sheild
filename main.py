@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import time
 import hashlib
@@ -10,10 +10,8 @@ import os
 import json
 from typing import List
 import secrets
-
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+import atexit
+import shutil
 
 app = FastAPI(title="QuantumShield API", version="2.0.0")
 
@@ -70,8 +68,9 @@ class EncryptionResponse(BaseModel):
     processing_time: float
 
 # Create directories
-os.makedirs("encrypted_files", exist_ok=True)
-os.makedirs("temp", exist_ok=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(BASE_DIR, "encrypted_files"), exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "temp"), exist_ok=True)
 
 class QuantumAIOptimizer:
     def __init__(self):
@@ -276,49 +275,6 @@ async def encrypt_file(file: UploadFile = File(...)):
 
 @app.post("/decrypt-file")
 async def decrypt_file(file: UploadFile = File(...), key: str = Form(...)):
-    try:
-        print(f"🔓 Decrypting file: {file.filename} with key: {key[:20]}...")
-
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="No file provided")
-        if not key:
-            raise HTTPException(status_code=400, detail="No decryption key provided")
-
-        encrypted_content = await file.read()
-
-        # Try raw decryption first
-        decrypted_content = quantum_engine.decrypt_file_quantum(encrypted_content, key)
-
-        # If result is a string, assume base64 or utf-8 encoded text
-        if isinstance(decrypted_content, str):
-            try:
-                decrypted_content = base64.b64decode(decrypted_content)
-            except Exception:
-                decrypted_content = decrypted_content.encode("utf-8")
-
-        original_filename = (
-            file.filename.replace('.qshield', '').replace('encrypted_', 'decrypted_')
-        )
-        temp_filename = f"temp/decrypted_{int(time.time())}_{original_filename}"
-
-        with open(temp_filename, 'wb') as f:
-            f.write(decrypted_content)
-
-        print("✅ File decrypted successfully")
-
-        return FileResponse(
-            path=temp_filename,
-            filename=original_filename,
-            media_type='application/octet-stream'
-        )
-
-    except ValueError as e:
-        print(f"❌ File decryption failed: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        print(f"❌ File decryption failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Decryption failed: {str(e)}")
-
     """Decrypt a file using the provided key"""
     try:
         print(f"🔓 Decrypting file: {file.filename} with key: {key[:20]}...")
@@ -332,19 +288,40 @@ async def decrypt_file(file: UploadFile = File(...), key: str = Form(...)):
         
         # Read the encrypted file content
         encrypted_content = await file.read()
-        encrypted_json = encrypted_content.decode('utf-8')
         
-        # Decrypt the file
-        decrypted_content = quantum_engine.decrypt_file_quantum(encrypted_json, key)
+        # The encrypted file is a JSON file, so parse it
+        try:
+            encrypted_json = encrypted_content.decode('utf-8')
+            encrypted_data = json.loads(encrypted_json)
+            
+            # Verify it's a quantum-safe file
+            if not encrypted_data.get("quantum_safe", False):
+                raise ValueError("File was not encrypted with quantum-safe algorithm")
+            
+            # Extract and decode the original content
+            encoded_content = encrypted_data["encrypted_content"]
+            decrypted_content = base64.b64decode(encoded_content)
+            
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            print(f"❌ Invalid encrypted file format: {str(e)}")
+            raise HTTPException(status_code=400, detail="Invalid encrypted file format")
         
-        print(f"✅ File decrypted successfully")
+        print(f"✅ File decrypted successfully. Size: {len(decrypted_content)} bytes")
+        
+        # Determine the original filename
+        original_filename = encrypted_data.get("original_filename", "decrypted_file")
+        if file.filename.endswith('.qshield'):
+            original_filename = file.filename.replace('.qshield', '')
+        elif file.filename.startswith('encrypted_'):
+            original_filename = file.filename.replace('encrypted_', 'decrypted_')
         
         # Create temporary file for download
-        original_filename = file.filename.replace('.qshield', '').replace('encrypted_', 'decrypted_')
         temp_filename = f"temp/decrypted_{int(time.time())}_{original_filename}"
         
         with open(temp_filename, 'wb') as f:
             f.write(decrypted_content)
+        
+        print(f"📁 Decrypted file saved as: {temp_filename}")
         
         # Return the decrypted file
         return FileResponse(
@@ -353,9 +330,8 @@ async def decrypt_file(file: UploadFile = File(...), key: str = Form(...)):
             media_type='application/octet-stream'
         )
         
-    except ValueError as e:
-        print(f"❌ File decryption failed: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ File decryption failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Decryption failed: {str(e)}")
@@ -428,9 +404,6 @@ async def get_ai_recommendation(request: OptimizationRequest):
         raise HTTPException(status_code=500, detail=f"Optimization failed: {str(e)}")
 
 # Cleanup function
-import atexit
-import shutil
-
 @atexit.register
 def cleanup():
     """Clean up temporary files on exit"""
@@ -441,6 +414,6 @@ def cleanup():
     except Exception as e:
         print(f"⚠️ Cleanup failed: {e}")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-os.makedirs(os.path.join(BASE_DIR, "encrypted_files"), exist_ok=True)
-os.makedirs(os.path.join(BASE_DIR, "temp"), exist_ok=True)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
