@@ -376,3 +376,6 @@ def cleanup():
     except Exception as e:
         print(f"⚠️ Cleanup failed: {e}")
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(BASE_DIR, "encrypted_files"), exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "temp"), exist_ok=True)
