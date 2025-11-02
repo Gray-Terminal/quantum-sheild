@@ -235,7 +235,7 @@ async def encrypt_data(request: EncryptionRequest):
         print(f"❌ Encryption failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Encryption failed: {str(e)}")
 
-@app.post("/encrypt-file")
+@app.post("/api/encrypt-file")
 async def encrypt_file(file: UploadFile = File(...)):
     """Encrypt a file with quantum-safe encryption and return the encrypted file"""
     try:
