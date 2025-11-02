@@ -1,6 +1,7 @@
+# main.py
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import time
 import hashlib
@@ -8,30 +9,34 @@ import base64
 import random
 import os
 import json
-from typing import List
 import secrets
+import atexit
+import shutil
+from typing import List, Tuple
 
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+# -------------------------
+# App & CORS
+# -------------------------
+app = FastAPI(title="QuantumShield API", version="2.2.0")
 
-app = FastAPI(title="QuantumShield API", version="2.0.0")
+# Allowed origins - add your production domains here
+ALLOWED_ORIGINS = [
+    "https://quantum-sheild-3asp-icambsdgp-varchas-hvs-projects.vercel.app",
+    "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",
+    "http://localhost:5173",
+    "https://gleeful-kringle-320853.netlify.app",
+]
 
-# === CORS ===
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://quantum-sheild-3asp-icambsdgp-varchas-hvs-projects.vercel.app",
-        "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",
-        "http://localhost:5173",
-        "https://gleeful-kringle-320853.netlify.app",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Encryption-Key", "X-Filename"],  # expose these to browser
 )
 
-# --- global preflight handler ---
+# Respond to browser preflight for any path (safe default)
 @app.options("/{full_path:path}")
 async def preflight(full_path: str):
     return JSONResponse(
@@ -40,12 +45,13 @@ async def preflight(full_path: str):
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
             "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "86400",  # cache the preflight for 24 h
+            "Access-Control-Max-Age": "86400",
         },
     )
 
-
-# Pydantic models
+# -------------------------
+# Models
+# -------------------------
 class EncryptionRequest(BaseModel):
     data: str
     algorithm: str = "kyber-1024"
@@ -61,18 +67,18 @@ class AIOptimization(BaseModel):
     improvement: str
     description: str
 
-class EncryptionResponse(BaseModel):
-    classical_encrypted: str
-    quantum_encrypted: str
-    performance_gain: int
-    quantum_resistance: int
-    ai_optimizations: List[AIOptimization]
-    processing_time: float
+# -------------------------
+# Directories
+# -------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ENCRYPTED_DIR = os.path.join(BASE_DIR, "encrypted_files")
+TEMP_DIR = os.path.join(BASE_DIR, "temp")
+os.makedirs(ENCRYPTED_DIR, exist_ok=True)
+os.makedirs(TEMP_DIR, exist_ok=True)
 
-# Create directories
-os.makedirs("encrypted_files", exist_ok=True)
-os.makedirs("temp", exist_ok=True)
-
+# -------------------------
+# Engines
+# -------------------------
 class QuantumAIOptimizer:
     def __init__(self):
         self.optimization_patterns = {
@@ -82,27 +88,28 @@ class QuantumAIOptimizer:
             "Key Generation": {"base_improvement": 12, "description": "Streamlined key generation process"},
             "Threat Analysis": {"base_improvement": 8, "description": "Real-time threat intelligence integration"}
         }
-    
-    def optimize(self, security_level: int, performance_need: int) -> tuple[List[AIOptimization], int]:
+
+    def optimize(self, security_level: int, performance_need: int) -> Tuple[List[AIOptimization], int]:
         optimizations = []
         total_improvement = 0
-        
-        for opt_type, config in self.optimization_patterns.items():
-            improvement = config["base_improvement"]
+
+        for opt_type, cfg in self.optimization_patterns.items():
+            improvement = cfg["base_improvement"]
             if security_level > 3:
                 improvement += 5
             if performance_need > 3:
                 improvement += 3
-                
+
             optimizations.append(AIOptimization(
                 type=opt_type,
                 status="complete",
                 improvement=f"{improvement}%",
-                description=config["description"]
+                description=cfg["description"]
             ))
             total_improvement += improvement
-            
+
         return optimizations, min(100, total_improvement)
+
 
 class QuantumEncryptionEngine:
     def __init__(self):
@@ -111,34 +118,29 @@ class QuantumEncryptionEngine:
             "kyber-768": {"security": 3, "performance": 4},
             "kyber-1024": {"security": 5, "performance": 3},
         }
-    
+
     def classical_encrypt(self, data: str) -> str:
-        """Simulate classical RSA/ECC encryption"""
         encoded = base64.b64encode(data.encode()).decode()
         hash_suffix = hashlib.sha256(data.encode()).hexdigest()[:8]
         return f"RSA_2048_{encoded}_ECC_256_{hash_suffix}"
-    
+
     def quantum_encrypt(self, data: str, algorithm: str = "kyber-1024") -> str:
-        """Simulate post-quantum lattice-based encryption"""
         encoded = base64.b64encode(data.encode()).decode()
         lattice_noise = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=16))
         security_level = self.algorithms.get(algorithm, {"security": 3})["security"]
         return f"PQC_{algorithm.upper()}_{lattice_noise}_{encoded}_LATTICE_{security_level}"
-    
+
     def generate_quantum_key(self) -> str:
-        """Generate a quantum-safe encryption key"""
         return base64.b64encode(secrets.token_bytes(32)).decode()
-    
-    def encrypt_file_quantum(self, content: bytes, filename: str) -> tuple[str, str, str]:
-        """Encrypt file content with quantum-safe encryption simulation"""
-        # Generate quantum key
+
+    def encrypt_file_quantum(self, content: bytes, filename: str) -> Tuple[str, str, str]:
+        """
+        Return (encrypted_json_str, key, file_path)
+        """
         key = self.generate_quantum_key()
-        
-        # Simulate lattice-based encryption
         encoded_content = base64.b64encode(content).decode()
         lattice_vector = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=24))
-        
-        # Create encrypted file structure
+
         encrypted_data = {
             "version": "1.0",
             "algorithm": "CRYSTALS-Kyber-1024",
@@ -150,42 +152,66 @@ class QuantumEncryptionEngine:
             "file_size": len(content),
             "file_hash": hashlib.sha256(content).hexdigest()
         }
-        
-        # Convert to JSON string
+
         encrypted_json = json.dumps(encrypted_data, indent=2)
-        
-        # Save to file for download
         safe_filename = filename.replace(" ", "_").replace("/", "_")
         encrypted_filename = f"encrypted_{safe_filename}_{int(time.time())}.qshield"
-        file_path = f"encrypted_files/{encrypted_filename}"
-        
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(encrypted_json)
-        
+        file_path = os.path.join(ENCRYPTED_DIR, encrypted_filename)
+
+        with open(file_path, "w", encoding="utf-8") as fh:
+            fh.write(encrypted_json)
+
         return encrypted_json, key, file_path
-    
-    def decrypt_file_quantum(self, encrypted_json: str, key: str) -> bytes:
-        """Decrypt quantum-encrypted file content"""
+
+    def decrypt_file_quantum(self, encrypted_json_input, key: str) -> bytes:
+        """
+        Accept either:
+         - a JSON string (decoded), or
+         - bytes that need to be decoded to UTF-8 first
+        Returns original bytes.
+        """
         try:
-            encrypted_data = json.loads(encrypted_json)
-            
-            # Verify it's a quantum-safe file
-            if not encrypted_data.get("quantum_safe", False):
+            # If we got bytes, decode to string
+            if isinstance(encrypted_json_input, (bytes, bytearray)):
+                try:
+                    encrypted_json = encrypted_json_input.decode("utf-8")
+                except UnicodeDecodeError:
+                    raise ValueError("Encrypted file is not utf-8 JSON")
+            else:
+                encrypted_json = encrypted_json_input
+
+            data = json.loads(encrypted_json)
+
+            if not data.get("quantum_safe", False):
                 raise ValueError("File was not encrypted with quantum-safe algorithm")
-            
-            # Extract and decode content
-            encoded_content = encrypted_data["encrypted_content"]
-            decrypted_content = base64.b64decode(encoded_content)
-            
-            return decrypted_content
-            
+
+            encoded_content = data.get("encrypted_content")
+            if encoded_content is None:
+                raise ValueError("Missing 'encrypted_content' in file")
+
+            # Base64 decode to bytes (this is the original file)
+            original_bytes = base64.b64decode(encoded_content)
+            return original_bytes
+
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON encrypted file: {e}")
         except Exception as e:
-            raise ValueError(f"Decryption failed: {str(e)}")
+            raise ValueError(f"Decryption failed: {e}")
+
 
 # Initialize engines
 quantum_engine = QuantumEncryptionEngine()
 ai_optimizer = QuantumAIOptimizer()
 
+# -------------------------
+# Helper utilities
+# -------------------------
+def safe_filename_for_download(name: str) -> str:
+    return name.replace(" ", "_").replace("/", "_")
+
+# -------------------------
+# Endpoints
+# -------------------------
 @app.get("/")
 async def root():
     return {"message": "QuantumShield API is running!", "status": "healthy"}
@@ -196,208 +222,165 @@ async def health_check():
 
 @app.post("/encrypt")
 async def encrypt_data(request: EncryptionRequest):
-    start_time = time.time()
-    
+    start = time.time()
     try:
-        print(f"🔐 Received encryption request for data: {request.data[:50]}...")
-        
-        # Simulate processing time
-        time.sleep(0.5)
-        
-        # Simulate classical encryption
         classical_encrypted = quantum_engine.classical_encrypt(request.data)
-        
-        # Simulate quantum encryption
         quantum_encrypted = quantum_engine.quantum_encrypt(request.data, request.algorithm)
-        
-        # Run AI optimization
-        optimizations, performance_gain = ai_optimizer.optimize(
-            security_level=5,
-            performance_need=3
-        )
-        
-        # Calculate quantum resistance
+        optimizations, perf_gain = ai_optimizer.optimize(security_level=5, performance_need=3)
         quantum_resistance = quantum_engine.algorithms.get(request.algorithm, {"security": 3})["security"] * 20
-        
-        processing_time = time.time() - start_time
-        
-        print(f"✅ Encryption successful - Quantum resistance: {quantum_resistance}%")
-        
+        processing_time = time.time() - start
+
         return {
             "classical_encrypted": classical_encrypted,
             "quantum_encrypted": quantum_encrypted,
-            "performance_gain": performance_gain,
+            "performance_gain": perf_gain,
             "quantum_resistance": quantum_resistance,
-            "ai_optimizations": optimizations,
+            "ai_optimizations": [o.dict() for o in optimizations],
             "processing_time": processing_time
         }
-        
     except Exception as e:
-        print(f"❌ Encryption failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Encryption failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Encryption failed: {e}")
+
+#
+# File encrypt endpoints - expose both /api/encrypt-file and /encrypt-file for backward compatibility
+#
+async def _handle_encrypt_file(uploaded_file: UploadFile):
+    if not uploaded_file or not uploaded_file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    content = await uploaded_file.read()
+    encrypted_json, key, file_path = quantum_engine.encrypt_file_quantum(content, uploaded_file.filename)
+    downloaded_filename = os.path.basename(file_path)
+
+    # Ensure response file exists
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=500, detail="Encrypted file not saved")
+
+    headers = {
+        "X-Encryption-Key": key,
+        "X-Filename": downloaded_filename,
+        "Access-Control-Expose-Headers": "X-Encryption-Key, X-Filename"
+    }
+
+    return FileResponse(path=file_path, filename=downloaded_filename, media_type="application/octet-stream", headers=headers)
 
 @app.post("/api/encrypt-file")
+async def api_encrypt_file(file: UploadFile = File(...)):
+    return await _handle_encrypt_file(file)
+
+@app.post("/encrypt-file")
 async def encrypt_file(file: UploadFile = File(...)):
-    """Encrypt a file with quantum-safe encryption and return the encrypted file"""
+    return await _handle_encrypt_file(file)
+
+
+#
+# File decrypt endpoints - accept both /api/decrypt-file and /decrypt-file
+#
+async def _handle_decrypt_file(uploaded_file: UploadFile, key: str):
+    if not uploaded_file or not uploaded_file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    if not key:
+        raise HTTPException(status_code=400, detail="No decryption key provided")
+
+    encrypted_bytes = await uploaded_file.read()
+
+    # Accept both: client might send raw JSON bytes or utf-8 string. quantum_engine handles both.
     try:
-        print(f"📁 Encrypting file: {file.filename}")
-        
-        # Validate file
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="No file provided")
-        
-        # Read the uploaded file content
-        content = await file.read()
-        
-        # Encrypt with quantum method
-        encrypted_json, key, file_path = quantum_engine.encrypt_file_quantum(content, file.filename)
-        
-        # Get the actual filename that was created
-        downloaded_filename = os.path.basename(file_path)
-        
-        print(f"✅ File encrypted: {downloaded_filename}")
-        print(f"🔑 Key generated: {key}")
-        
-        # Return the encrypted file as a download
-        return FileResponse(
-            path=file_path,
-            filename=downloaded_filename,
-            media_type='application/octet-stream',
-            headers={
-                "X-Encryption-Key": key,
-                "X-Filename": downloaded_filename,
-                "Access-Control-Expose-Headers": "X-Encryption-Key, X-Filename"
-            }
-        )
-        
-    except Exception as e:
-        print(f"❌ File encryption failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"File encryption failed: {str(e)}")
+        original_bytes = quantum_engine.decrypt_file_quantum(encrypted_bytes, key)
+    except ValueError as ve:
+        # If parsing as bytes failed, try decoding as utf-8 string explicitly (safety)
+        try:
+            original_bytes = quantum_engine.decrypt_file_quantum(encrypted_bytes.decode("utf-8"), key)
+        except Exception:
+            raise HTTPException(status_code=400, detail=str(ve))
+
+    # Restore filename (strip qshield suffix if present)
+    original_name = uploaded_file.filename
+    if original_name.endswith(".qshield"):
+        original_name = original_name[:-len(".qshield")]
+    # Remove "encrypted_" prefix if present and replace with decrypted_ prefix for safety
+    if original_name.startswith("encrypted_"):
+        original_name = original_name.replace("encrypted_", "", 1)
+
+    out_name = f"decrypted_{int(time.time())}_{safe_filename_for_download(original_name)}"
+    out_path = os.path.join(TEMP_DIR, out_name)
+
+    # Write bytes to temp and return as download
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    with open(out_path, "wb") as fh:
+        fh.write(original_bytes)
+
+    return FileResponse(path=out_path, filename=original_name, media_type="application/octet-stream")
+
+@app.post("/api/decrypt-file")
+async def api_decrypt_file(file: UploadFile = File(...), key: str = Form(...)):
+    return await _handle_decrypt_file(file, key)
 
 @app.post("/decrypt-file")
 async def decrypt_file(file: UploadFile = File(...), key: str = Form(...)):
-    """Decrypt a file using the provided key"""
-    try:
-        print(f"🔓 Decrypting file: {file.filename} with key: {key[:20]}...")
-        
-        # Validate inputs
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="No file provided")
-        
-        if not key:
-            raise HTTPException(status_code=400, detail="No decryption key provided")
-        
-        # Read the encrypted file content
-        encrypted_content = await file.read()
-        encrypted_json = encrypted_content.decode('utf-8')
-        
-        # Decrypt the file
-        decrypted_content = quantum_engine.decrypt_file_quantum(encrypted_json, key)
-        
-        print(f"✅ File decrypted successfully")
-        
-        # Create temporary file for download
-        original_filename = file.filename.replace('.qshield', '').replace('encrypted_', 'decrypted_')
-        temp_filename = f"temp/decrypted_{int(time.time())}_{original_filename}"
-        
-        with open(temp_filename, 'wb') as f:
-            f.write(decrypted_content)
-        
-        # Return the decrypted file
-        return FileResponse(
-            path=temp_filename,
-            filename=original_filename,
-            media_type='application/octet-stream'
-        )
-        
-    except ValueError as e:
-        print(f"❌ File decryption failed: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        print(f"❌ File decryption failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Decryption failed: {str(e)}")
+    return await _handle_decrypt_file(file, key)
 
+
+# Download/list endpoints
 @app.get("/download-file/{filename}")
 async def download_file(filename: str):
-    """Download an encrypted file"""
-    try:
-        file_path = f"encrypted_files/{filename}"
-        if os.path.exists(file_path):
-            print(f"📥 Downloading file: {filename}")
-            return FileResponse(
-                path=file_path,
-                filename=filename,
-                media_type='application/octet-stream'
-            )
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
+    file_path = os.path.join(ENCRYPTED_DIR, filename)
+    if os.path.exists(file_path):
+        return FileResponse(path=file_path, filename=filename, media_type="application/octet-stream")
+    raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/list-files")
 async def list_encrypted_files():
-    """List all encrypted files"""
     try:
         files = []
-        for filename in os.listdir("encrypted_files"):
-            file_path = f"encrypted_files/{filename}"
-            if os.path.isfile(file_path):
+        for fn in os.listdir(ENCRYPTED_DIR):
+            path = os.path.join(ENCRYPTED_DIR, fn)
+            if os.path.isfile(path):
                 files.append({
-                    "filename": filename,
-                    "size": os.path.getsize(file_path),
-                    "created": os.path.getctime(file_path)
+                    "filename": fn,
+                    "size": os.path.getsize(path),
+                    "created": os.path.getctime(path)
                 })
         return {"files": files}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {e}")
 
+# AI optimize endpoint (keeps your original semantics)
 @app.post("/optimize")
 async def get_ai_recommendation(request: OptimizationRequest):
-    """Get AI recommendation for best algorithm"""
     try:
         algorithms = [
             {"name": "Kyber-512", "security": 1, "performance": 5, "size": 2},
             {"name": "Kyber-768", "security": 3, "performance": 4, "size": 3},
             {"name": "Kyber-1024", "security": 5, "performance": 3, "size": 4},
         ]
-        
-        # Simple scoring algorithm
+
         best_score = -1
         best_algorithm = algorithms[0]
-        
         for algo in algorithms:
-            score = (algo["security"] * request.security_level + 
-                    algo["performance"] * request.performance_need + 
-                    (6 - algo["size"]) * request.size_constraint)
-            
+            score = (algo["security"] * request.security_level +
+                     algo["performance"] * request.performance_need +
+                     (6 - algo["size"]) * request.size_constraint)
             if score > best_score:
                 best_score = score
                 best_algorithm = algo
-        
+
         return {
             "recommended_algorithm": best_algorithm["name"],
             "reason": f"Best match for security level {request.security_level}, performance need {request.performance_need}",
             "score": best_score,
             "details": best_algorithm
         }
-        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Optimization failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Optimization failed: {e}")
 
-# Cleanup function
-import atexit
-import shutil
-
+# -------------------------
+# Cleanup
+# -------------------------
 @atexit.register
-def cleanup():
-    """Clean up temporary files on exit"""
+def cleanup_temp():
     try:
-        if os.path.exists("temp"):
-            shutil.rmtree("temp")
-        print("🧹 Cleaned up temporary files")
+        if os.path.exists(TEMP_DIR):
+            shutil.rmtree(TEMP_DIR)
     except Exception as e:
-        print(f"⚠️ Cleanup failed: {e}")
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-os.makedirs(os.path.join(BASE_DIR, "encrypted_files"), exist_ok=True)
-os.makedirs(os.path.join(BASE_DIR, "temp"), exist_ok=True)
+        print("Cleanup failed:", e)
