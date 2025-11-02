@@ -181,7 +181,7 @@ export default function QuantumShield() {
       form.append("file", selectedDecryptFile);
       form.append("key", decryptionKey);
 
-    const resp = await axios.post(`${config.API_BASE_URL}/api/encrypt-file`, form, {
+    const resp = await axios.post(`${config.API_BASE_URL}/api/decrypt-file`, form, {
   
   responseType: "blob",
   timeout: 120000,
