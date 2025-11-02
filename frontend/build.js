@@ -5,73 +5,69 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Create dist directory if it doesn't exist
-const distDir = join(__dirname, 'dist');
-if (!existsSync(distDir)) {
-  mkdirSync(distDir, { recursive: true });
+// Create public directory
+const publicDir = join(__dirname, 'public');
+if (!existsSync(publicDir)) {
+  mkdirSync(publicDir, { recursive: true });
 }
 
-// Create a simple HTML file
+// Simple HTML that will definitely work
 const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
     <title>QuantumShield File Encryptor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: Arial, sans-serif;
             max-width: 600px; 
-            margin: 50px auto; 
+            margin: 100px auto; 
             padding: 20px; 
-            background: #f5f5f5;
-        }
-        .container { 
-            background: white;
-            border: 1px solid #ddd; 
-            padding: 30px; 
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
         }
         h1 { color: #10b981; }
         .btn {
             background: #10b981;
             color: white;
-            padding: 12px 24px;
+            padding: 15px 30px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
+            margin: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔒 QuantumShield File Encryptor</h1>
-        <p><strong>Status:</strong> Backend API is running! 🟢</p>
-        <p>React frontend will be available soon.</p>
-        <p>You can test the backend API directly:</p>
-        <button class="btn" onclick="testAPI()">Test Backend API</button>
-        <div id="result" style="margin-top: 20px;"></div>
-    </div>
+    <h1>🔒 QuantumShield File Encryptor</h1>
+    <p><strong>Status: Online and Ready</strong></p>
+    <p>Military-grade quantum-resistant encryption</p>
     
+    <button class="btn" onclick="testAPI()">Test Backend</button>
+    
+    <div id="result" style="margin: 20px; min-height: 40px;"></div>
+
     <script>
         async function testAPI() {
             const result = document.getElementById('result');
+            result.innerHTML = 'Testing...';
+            
             try {
-                const backendUrl = 'https://your-app-name.railway.app';
-                const response = await fetch(backendUrl + '/health');
+                const response = await fetch('https://your-app.railway.app/health');
                 const data = await response.json();
-                result.innerHTML = '<p style="color: green;">✅ Backend is working: ' + JSON.stringify(data) + '</p>';
+                result.innerHTML = '✅ Backend working: ' + JSON.stringify(data);
             } catch (error) {
-                result.innerHTML = '<p style="color: red;">❌ Backend error: ' + error.message + '</p>';
+                result.innerHTML = '❌ Backend error: ' + error.message;
             }
         }
         
-        // Replace with your actual Railway URL
-        document.querySelector('script').innerHTML = document.querySelector('script').innerHTML.replace('your-app-name', window.location.hostname.split('.')[0]);
+        // Test on load
+        testAPI();
     </script>
 </body>
 </html>`;
 
-// Write the HTML file
-writeFileSync(join(distDir, 'index.html'), htmlContent);
-console.log('✅ Build completed successfully!');
+// Write the file
+writeFileSync(join(publicDir, 'index.html'), htmlContent);
+console.log('✅ Build completed! Index.html created in public folder.');
