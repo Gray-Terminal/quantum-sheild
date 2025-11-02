@@ -39,6 +39,7 @@ async def preflight(full_path: str):
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
             "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "86400",  # cache the preflight for 24 h
         },
     )
 
