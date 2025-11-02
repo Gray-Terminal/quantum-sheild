@@ -276,6 +276,49 @@ async def encrypt_file(file: UploadFile = File(...)):
 
 @app.post("/decrypt-file")
 async def decrypt_file(file: UploadFile = File(...), key: str = Form(...)):
+    try:
+        print(f"🔓 Decrypting file: {file.filename} with key: {key[:20]}...")
+
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        if not key:
+            raise HTTPException(status_code=400, detail="No decryption key provided")
+
+        encrypted_content = await file.read()
+
+        # Try raw decryption first
+        decrypted_content = quantum_engine.decrypt_file_quantum(encrypted_content, key)
+
+        # If result is a string, assume base64 or utf-8 encoded text
+        if isinstance(decrypted_content, str):
+            try:
+                decrypted_content = base64.b64decode(decrypted_content)
+            except Exception:
+                decrypted_content = decrypted_content.encode("utf-8")
+
+        original_filename = (
+            file.filename.replace('.qshield', '').replace('encrypted_', 'decrypted_')
+        )
+        temp_filename = f"temp/decrypted_{int(time.time())}_{original_filename}"
+
+        with open(temp_filename, 'wb') as f:
+            f.write(decrypted_content)
+
+        print("✅ File decrypted successfully")
+
+        return FileResponse(
+            path=temp_filename,
+            filename=original_filename,
+            media_type='application/octet-stream'
+        )
+
+    except ValueError as e:
+        print(f"❌ File decryption failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"❌ File decryption failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Decryption failed: {str(e)}")
+
     """Decrypt a file using the provided key"""
     try:
         print(f"🔓 Decrypting file: {file.filename} with key: {key[:20]}...")
