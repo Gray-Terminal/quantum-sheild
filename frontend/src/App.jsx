@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Lock, Key, Download, Shield, Cpu, Zap } from 'lucide-react';
 import './App.css'; // We'll create this CSS file
+import config from "./config.js";
+
 
 const QuantumShield = () => {
   const [activeTab, setActiveTab] = useState('text');
@@ -21,7 +23,7 @@ const QuantumShield = () => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/encrypt', {
+      const response = await axios.post(`${config.API_BASE_URL}/encrypt`, {
         data: textInput,
         algorithm: selectedAlgorithm
       });
@@ -47,7 +49,7 @@ const QuantumShield = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       
-      const response = await axios.post('http://localhost:8000/encrypt-file', formData, {
+      const response = await axios.post(`${config.API_BASE_URL}/encrypt`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'blob'
       });
@@ -85,7 +87,7 @@ const QuantumShield = () => {
       formData.append('file', encryptedFile);
       formData.append('key', decryptionKey);
 
-      const response = await axios.post('http://localhost:8000/decrypt-file', formData, {
+      const response = await axios.post(`${config.API_BASE_URL}/encrypt`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'blob'
       });
