@@ -24,6 +24,7 @@ app.add_middleware(
         "https://quantum-sheild-3asp-icambsdgp-varchas-hvs-projects.vercel.app",
         "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",
         "http://localhost:5173",
+        "https://gleeful-kringle-320853.netlify.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
