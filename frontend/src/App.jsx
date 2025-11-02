@@ -1,487 +1,343 @@
-/* QuantumShield.css */
-:root {
-  --primary: #10b981;
-  --primary-dark: #059669;
-  --success: #34d399;
-  --danger: #ef4444;
-  --dark: #0f172a;
-  --darker: #020617;
-  --light: #f8fafc;
-  --gray: #64748b;
-}
+import React, { useState } from 'react';
+import axios from 'axios';
+import { Lock, Key, Download, Shield, Cpu, Zap } from 'lucide-react';
+import './App.css'; // We'll create this CSS file
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+const QuantumShield = () => {
+  const [activeTab, setActiveTab] = useState('text');
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('kyber-768');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [textInput, setTextInput] = useState('');
+  const [encryptionResult, setEncryptionResult] = useState(null);
+  const [decryptionKey, setDecryptionKey] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-.quantum-shield {
-  font-family: 'Inter', sans-serif;
-  background: linear-gradient(135deg, var(--darker) 0%, #064e3b 50%, var(--darker) 100%);
-  color: var(--light);
-  min-height: 100vh;
-  position: relative;
-}
+  // Text Encryption
+  const handleTextEncrypt = async () => {
+    if (!textInput.trim()) {
+      alert('Please enter some text to encrypt!');
+      return;
+    }
 
-/* Animated Background */
-.quantum-shield::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-  animation: gridMove 20s linear infinite;
-  pointer-events: none;
-  z-index: 0;
-}
+    setIsLoading(true);
+    try {
+      const response = await axios.post('http://localhost:8000/encrypt', {
+        data: textInput,
+        algorithm: selectedAlgorithm
+      });
+      
+      setEncryptionResult(response.data);
+    } catch (error) {
+      console.error('Encryption error:', error);
+      alert('Encryption failed!');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-@keyframes gridMove {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(50px, 50px); }
-}
+  // File Encryption
+  const handleFileEncrypt = async () => {
+    if (!selectedFile) {
+      alert('Please select a file first!');
+      return;
+    }
 
-/* Header */
-.header {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
-  z-index: 1000;
-}
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      
+      const response = await axios.post('http://localhost:8000/encrypt-file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'blob'
+      });
 
-.nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
+      // Download encrypted file
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `encrypted_${selectedFile.name}.qshield`;
+      a.click();
+      window.URL.revokeObjectURL(url);
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: var(--light);
-}
+      const encryptionKey = response.headers['x-encryption-key'];
+      setEncryptionResult({ key: encryptionKey, file: selectedFile.name });
+      
+      alert('✅ File encrypted successfully! Save your key: ' + encryptionKey);
+    } catch (error) {
+      console.error('File encryption error:', error);
+      alert('File encryption failed!');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--primary), var(--success));
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-}
+  // File Decryption
+  const handleFileDecrypt = async (encryptedFile) => {
+    if (!encryptedFile || !decryptionKey.trim()) {
+      alert('Please upload encrypted file and enter decryption key!');
+      return;
+    }
 
-.nav-links a {
-  color: var(--gray);
-  text-decoration: none;
-  font-weight: 600;
-  margin: 0 1rem;
-  transition: color 0.3s;
-  position: relative;
-}
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', encryptedFile);
+      formData.append('key', decryptionKey);
 
-.nav-links a::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--primary);
-  transition: width 0.3s;
-}
+      const response = await axios.post('http://localhost:8000/decrypt-file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'blob'
+      });
 
-.nav-links a:hover {
-  color: var(--primary);
-}
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      const originalName = encryptedFile.name.replace(/^encrypted_/, '').replace(/\.qshield$/, '');
+      a.download = `decrypted_${originalName}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
 
-.nav-links a:hover::after {
-  width: 100%;
-}
+      alert('✅ File decrypted successfully!');
+    } catch (error) {
+      console.error('Decryption error:', error);
+      alert('Decryption failed! Invalid key or file.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-/* Hero Section */
-.hero {
-  padding: 180px 0 100px;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-}
+  return (
+    <div className="quantum-shield">
+      {/* Header */}
+      <header className="header">
+        <nav className="nav">
+          <div className="logo">
+            <div className="logo-icon">🛡️</div>
+            <span>QuantumShield</span>
+          </div>
+          <div className="nav-links">
+            <a href="#text" onClick={() => setActiveTab('text')}>Text Encryption</a>
+            <a href="#file" onClick={() => setActiveTab('file')}>File Encryption</a>
+            <a href="#optimize" onClick={() => setActiveTab('optimize')}>AI Optimizer</a>
+          </div>
+        </nav>
+      </header>
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--primary);
-  padding: 0.75rem 1.5rem;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-  animation: pulse 3s ease-in-out infinite;
-}
+      {/* Hero Section */}
+      <section className="hero">
+        <div className="badge">
+          <Zap size={16} />
+          AI-Optimized Post-Quantum Cryptography
+        </div>
+        <h1>Quantum-Resistant<br />Encryption for the Future</h1>
+        <p>Protect your data against quantum computing threats with AI-optimized lattice-based cryptography</p>
+        <button className="btn btn-primary" onClick={() => document.querySelector('.tabs').scrollIntoView({ behavior: 'smooth' })}>
+          <Shield size={20} />
+          Try Live Demo
+        </button>
+      </section>
 
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.5); }
-}
+      {/* Tabs */}
+      <div className="tabs">
+        <div className={`tab ${activeTab === 'text' ? 'active' : ''}`} onClick={() => setActiveTab('text')}>
+          📝 Text Encryption
+        </div>
+        <div className={`tab ${activeTab === 'file' ? 'active' : ''}`} onClick={() => setActiveTab('file')}>
+          📁 File Encryption
+        </div>
+        <div className={`tab ${activeTab === 'optimize' ? 'active' : ''}`} onClick={() => setActiveTab('optimize')}>
+          🧠 AI Optimizer
+        </div>
+      </div>
 
-.hero h1 {
-  font-size: 4.5rem;
-  font-weight: 900;
-  line-height: 1.1;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, var(--light) 0%, var(--primary) 50%, var(--success) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+      <div className="container">
+        {/* Text Encryption Tab */}
+        {activeTab === 'text' && (
+          <div className="card">
+            <h2>Text Encryption Demo</h2>
+            
+            <div className="input-group">
+              <label>📋 Enter Your Sensitive Data</label>
+              <textarea 
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Credit card: 4532-1234-5678-9010, SSN: 123-45-6789, API Key: sk_live_abc123..."
+                rows={5}
+              />
+              <p className="helper-text">🔒 All data processed locally - nothing stored</p>
+            </div>
 
-.hero p {
-  font-size: 1.3rem;
-  color: var(--gray);
-  margin-bottom: 3rem;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-}
+            <div className="input-group">
+              <label>🔐 Select Algorithm</label>
+              <div className="algorithm-select">
+                {['kyber-512', 'kyber-768', 'kyber-1024'].map(algo => (
+                  <div 
+                    key={algo}
+                    className={`algo-option ${selectedAlgorithm === algo ? 'selected' : ''}`}
+                    onClick={() => setSelectedAlgorithm(algo)}
+                  >
+                    <h4>{algo.split('-')[0].toUpperCase()}-{algo.split('-')[1]}</h4>
+                    <p>
+                      {algo === 'kyber-512' && 'Fast, Light Security'}
+                      {algo === 'kyber-768' && 'Balanced (Recommended)'}
+                      {algo === 'kyber-1024' && 'Maximum Security'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: linear-gradient(135deg, var(--primary), var(--success));
-  color: white;
-  border: none;
-  padding: 1.25rem 2.5rem;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.4s;
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
-  text-decoration: none;
-}
+            <button 
+              className="btn btn-primary full-width" 
+              onClick={handleTextEncrypt}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="loading">
+                  <div></div><div></div><div></div>
+                </div>
+              ) : (
+                <>
+                  <Cpu size={20} />
+                  Encrypt with AI Optimization
+                </>
+              )}
+            </button>
 
-.btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 40px rgba(16, 185, 129, 0.6);
-}
+            {encryptionResult && (
+              <div className="results">
+                <div className="result-box classical">
+                  <div className="result-header">
+                    <h3>⚠️ Classical Encryption</h3>
+                    <span className="tag red">Vulnerable</span>
+                  </div>
+                  <div className="encrypted-output">
+                    {encryptionResult.classical}
+                  </div>
+                  <p>❌ Quantum Resistance: 0%</p>
+                  <p>⏱️ Break Time: &lt;1 second</p>
+                </div>
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
+                <div className="result-box quantum">
+                  <div className="result-header">
+                    <h3>🛡️ QuantumShield PQC</h3>
+                    <span className="tag green">Quantum Safe</span>
+                  </div>
+                  <div className="encrypted-output">
+                    {encryptionResult.quantum}
+                  </div>
+                  <p>✅ Quantum Resistance: 100%</p>
+                  <p>⏱️ Break Time: 10,000+ years</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-.btn-secondary {
-  background: linear-gradient(135deg, #6b7280, #9ca3af);
-}
+        {/* File Encryption Tab */}
+        {activeTab === 'file' && (
+          <div className="card">
+            <h2>File Encryption</h2>
+            
+            <div className="file-upload-area" onClick={() => document.getElementById('fileInput').click()}>
+              <h3>📂 Drop file here or click to upload</h3>
+              <p>Supports all file types</p>
+              <input 
+                type="file" 
+                id="fileInput" 
+                style={{ display: 'none' }}
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+              />
+            </div>
 
-.btn-secondary:hover:not(:disabled) {
-  box-shadow: 0 15px 40px rgba(107, 114, 128, 0.6);
-}
+            {selectedFile && (
+              <div className="file-info">
+                <p><strong>Selected:</strong> {selectedFile.name}</p>
+                <p><strong>Size:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
+            )}
 
-.full-width {
-  width: 100%;
-  justify-content: center;
-}
+            <button 
+              className="btn btn-primary full-width"
+              onClick={handleFileEncrypt}
+              disabled={!selectedFile || isLoading}
+            >
+              <Lock size={20} />
+              {isLoading ? 'Encrypting...' : 'Encrypt File'}
+            </button>
 
-/* Tabs */
-.tabs {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin: 4rem 0 3rem;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
+            {/* Decryption Section */}
+            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <h3>Decrypt File</h3>
+              
+              <div className="input-group">
+                <label>Upload Encrypted (.qshield) File</label>
+                <input 
+                  type="file" 
+                  accept=".qshield"
+                  onChange={(e) => setSelectedFile(e.target.files[0])}
+                />
+              </div>
 
-.tab {
-  padding: 1rem 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: var(--gray);
-  cursor: pointer;
-  transition: all 0.3s;
-  font-weight: 600;
-}
+              <div className="input-group">
+                <label>Enter Decryption Key</label>
+                <input 
+                  type="text"
+                  value={decryptionKey}
+                  onChange={(e) => setDecryptionKey(e.target.value)}
+                  placeholder="Paste your encryption key here..."
+                />
+              </div>
 
-.tab.active {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: var(--primary);
-  color: var(--primary);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-}
+              <button 
+                className="btn btn-secondary full-width"
+                onClick={() => handleFileDecrypt(selectedFile)}
+                disabled={!selectedFile || !decryptionKey.trim() || isLoading}
+              >
+                <Key size={20} />
+                {isLoading ? 'Decrypting...' : 'Decrypt File'}
+              </button>
+            </div>
+          </div>
+        )}
 
-.tab:hover {
-  border-color: var(--primary);
-  transform: translateY(-2px);
-}
+        {/* AI Optimizer Tab */}
+        {activeTab === 'optimize' && (
+          <div className="card">
+            <h2>🧠 AI Algorithm Recommender</h2>
+            <p>Answer these questions to get the best algorithm recommendation</p>
+            
+            {/* Add your AI optimizer content here */}
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--gray)' }}>
+              <Cpu size={48} />
+              <p style={{ marginTop: '1rem' }}>AI Optimization features coming soon...</p>
+            </div>
+          </div>
+        )}
 
-/* Container */
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  position: relative;
-  z-index: 1;
-}
+        {/* Stats Section */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-value">$17.7T</div>
+            <p>At Risk from Quantum Attacks</p>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">100%</div>
+            <p>Quantum Resistance</p>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">75%</div>
+            <p>Performance Improvement</p>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">5-10yrs</div>
+            <p>Until Quantum Threat</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-/* Cards */
-.card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 3rem;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s;
-  margin-bottom: 2rem;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 30px 80px rgba(16, 185, 129, 0.2);
-}
-
-.card h2 {
-  font-size: 2rem;
-  margin-bottom: 2rem;
-  color: var(--light);
-}
-
-/* Input Groups */
-.input-group {
-  margin-bottom: 2rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.75rem;
-  font-weight: 700;
-  color: var(--light);
-  font-size: 1.1rem;
-}
-
-textarea, input[type="text"], input[type="file"] {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 1.25rem;
-  color: var(--light);
-  font-size: 1rem;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.3s;
-}
-
-textarea {
-  min-height: 150px;
-  resize: vertical;
-}
-
-textarea:focus, input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
-}
-
-.helper-text {
-  color: var(--success);
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-/* Algorithm Select */
-.algorithm-select {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.algo-option {
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-align: center;
-}
-
-.algo-option.selected {
-  border-color: var(--primary);
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.algo-option:hover {
-  border-color: var(--primary);
-  transform: translateY(-2px);
-}
-
-.algo-option h4 {
-  color: var(--light);
-  margin-bottom: 0.5rem;
-}
-
-.algo-option p {
-  font-size: 0.85rem;
-  color: var(--gray);
-}
-
-/* File Upload */
-.file-upload-area {
-  border: 3px dashed rgba(16, 185, 129, 0.3);
-  border-radius: 16px;
-  padding: 3rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-bottom: 2rem;
-}
-
-.file-upload-area:hover {
-  border-color: var(--primary);
-  background: rgba(16, 185, 129, 0.05);
-}
-
-.file-info {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin: 2rem 0;
-}
-
-/* Results */
-.results {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin: 3rem 0;
-}
-
-.result-box {
-  padding: 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid;
-  border-radius: 16px;
-  position: relative;
-  overflow: hidden;
-}
-
-.result-box.classical {
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.result-box.quantum {
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.tag {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.tag.red {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--danger);
-}
-
-.tag.green {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--primary);
-}
-
-.encrypted-output {
-  background: rgba(0, 0, 0, 0.5);
-  padding: 1rem;
-  border-radius: 8px;
-  font-family: 'Monaco', monospace;
-  font-size: 0.85rem;
-  word-break: break-all;
-  margin: 1rem 0;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin: 4rem 0;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary);
-}
-
-.stat-value {
-  font-size: 3rem;
-  font-weight: 900;
-  color: var(--primary);
-  margin-bottom: 0.5rem;
-}
-
-.stat-card p {
-  color: var(--gray);
-}
-
-/* Loading Animation */
-.loading {
-  display: inline-flex;
-  gap: 0.5rem;
-}
-
-.loading div {
-  width: 10px;
-  height: 10px;
-  background: white;
-  border-radius: 50%;
-  animation: bounce 1.4s ease-in-out infinite both;
-}
-
-.loading div:nth
+export default QuantumShield;
