@@ -376,9 +376,3 @@ def cleanup():
     except Exception as e:
         print(f"⚠️ Cleanup failed: {e}")
 
-if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting QuantumShield API Server...")
-    print("📡 Server running on: http://localhost:8000")
-    print("📚 API docs available at: http://localhost:8000/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
