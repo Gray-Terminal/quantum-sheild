@@ -17,7 +17,10 @@ app = FastAPI(title="QuantumShield API", version="2.0.0")
 # Enhanced CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for now
+    allow_origins=[
+        "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",  # your Vercel site
+        "http://localhost:5173",  # local dev (optional)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
