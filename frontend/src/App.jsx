@@ -118,16 +118,16 @@ export default function QuantumShield() {
       form.append("file", selectedFile);
       form.append("algorithm", selectedAlgorithm);
 
-      const resp = await axios.post(`${config.API_BASE_URL}/encrypt-file`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-        responseType: "blob",
-        onUploadProgress: (evt) => {
-          if (evt.total) {
-            setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
-          }
-        },
-        timeout: 120000,
-      });
+      const resp = await axios.post('/api/encrypt-file', form, {
+  headers: { "Content-Type": "multipart/form-data" },
+  responseType: "blob",
+  onUploadProgress: (evt) => {
+    if (evt.total) {
+      setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+    }
+  },
+  timeout: 120000,
+});
 
       // Download blob
       const blobUrl = window.URL.createObjectURL(resp.data);
@@ -181,11 +181,11 @@ export default function QuantumShield() {
       form.append("file", selectedDecryptFile);
       form.append("key", decryptionKey);
 
-      const resp = await axios.post(`${config.API_BASE_URL}/decrypt-file`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-        responseType: "blob",
-        timeout: 120000,
-      });
+      const resp = await axios.post('/api/decrypt-file', form, {
+  headers: { "Content-Type": "multipart/form-data" },
+  responseType: "blob",
+  timeout: 120000,
+});
 
       // Download decrypted blob
       const blobUrl = window.URL.createObjectURL(resp.data);
