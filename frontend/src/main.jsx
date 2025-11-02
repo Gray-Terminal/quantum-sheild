@@ -6,4 +6,4 @@ import './App.css';
 
 const container = document.getElementById("root");
 const root = createRoot(container);
-root.render(<QuantumShieldFileEncryptor />);
+root.render(<QuantumShield />);
