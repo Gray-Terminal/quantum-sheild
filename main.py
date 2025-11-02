@@ -11,20 +11,37 @@ import json
 from typing import List
 import secrets
 
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 app = FastAPI(title="QuantumShield API", version="2.0.0")
 
-# Enhanced CORS configuration
+# === CORS ===
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",  # your Vercel site
-        "http://localhost:5173",  # local dev (optional)
+        "https://quantum-sheild-3asp-icambsdgp-varchas-hvs-projects.vercel.app",
+        "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- global preflight handler ---
+@app.options("/{full_path:path}")
+async def preflight(full_path: str):
+    return JSONResponse(
+        content={"ok": True},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
 
 # Pydantic models
 class EncryptionRequest(BaseModel):
