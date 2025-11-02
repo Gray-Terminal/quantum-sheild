@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const target = 'https://quantum-sheild-production.up.railway.app/decrypt-file';
+  const target = 'http://localhost:8000/decrypt-file';
 
   try {
     const upstream = await fetch(target, {

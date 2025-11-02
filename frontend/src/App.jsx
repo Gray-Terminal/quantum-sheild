@@ -118,8 +118,8 @@ export default function QuantumShield() {
       form.append("file", selectedFile);
       form.append("algorithm", selectedAlgorithm);
 
-      const resp = await axios.post('/api/encrypt-file', form, {
-  headers: { "Content-Type": "multipart/form-data" },
+      const resp = await axios.post(`${config.API_BASE_URL}/api/encrypt-file`, form, {
+  
   responseType: "blob",
   onUploadProgress: (evt) => {
     if (evt.total) {
@@ -181,8 +181,8 @@ export default function QuantumShield() {
       form.append("file", selectedDecryptFile);
       form.append("key", decryptionKey);
 
-    const resp = await axios.post(`${config.API_BASE_URL}/encrypt-file`, form, {
-  headers: { "Content-Type": "multipart/form-data" },
+    const resp = await axios.post(`${config.API_BASE_URL}/api/encrypt-file`, form, {
+  
   responseType: "blob",
   timeout: 120000,
 });
