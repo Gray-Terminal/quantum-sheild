@@ -167,6 +167,7 @@ class QuantumEncryptionEngine:
     def decrypt_file_quantum(self, encrypted_json: str, key: str) -> bytes:
         """Decrypt quantum-encrypted file content"""
         try:
+            # Parse the encrypted data
             encrypted_data = json.loads(encrypted_json)
             
             # Verify it's a quantum-safe file
@@ -179,6 +180,9 @@ class QuantumEncryptionEngine:
             
             return decrypted_content
             
+        except json.JSONDecodeError:
+            # If it's not JSON, try to handle as raw encrypted content
+            raise ValueError("Invalid encrypted file format - expected JSON structure")
         except Exception as e:
             raise ValueError(f"Decryption failed: {str(e)}")
 
