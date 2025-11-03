@@ -38,6 +38,7 @@ app.add_middleware(
 )
 
 # Respond to browser preflight for any path (safe default)
+'''
 @app.options("/{full_path:path}")
 async def preflight(full_path: str):
     return JSONResponse(
@@ -49,7 +50,7 @@ async def preflight(full_path: str):
             "Access-Control-Max-Age": "86400",
         },
     )
-
+'''
 # -------------------------
 # Models
 # -------------------------
