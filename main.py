@@ -30,15 +30,12 @@ ALLOWED_ORIGINS = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["https://quantumsheild.netlify.app", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Encryption-Key", "X-Filename"],  # expose these to browser
 )
-
 # Respond to browser preflight for any path (safe default)
-'''
 @app.options("/{full_path:path}")
 async def preflight(full_path: str):
     return JSONResponse(
@@ -50,7 +47,7 @@ async def preflight(full_path: str):
             "Access-Control-Max-Age": "86400",
         },
     )
-'''
+
 # -------------------------
 # Models
 # -------------------------
