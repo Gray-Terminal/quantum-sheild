@@ -4,32 +4,60 @@ import axios from "axios";
 import { Lock, Key, Download, Shield, Cpu, Zap, Copy, Check } from "lucide-react";
 import "./App.css";
 import config from "./config.js";
+import logo from "./assets/logo.png";
+
 
 const QuantResult = ({ result }) => {
   if (!result) return null;
+
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Copied to clipboard");
+    } catch {
+      alert("Copy failed — please copy manually");
+    }
+  };
+
   return (
     <div className="results">
+      {/* Classical */}
       <div className="result-box classical">
         <div className="result-header">
           <h3>⚠️ Classical Encryption</h3>
           <span className="tag red">Vulnerable</span>
         </div>
-        <div className="encrypted-output">{result.classical}</div>
-        <p>❌ Quantum Resistance: 0%</p>
+
+        <div className="encrypted-output">
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+            {result.classical || "(no data)"}
+          </pre>
+        </div>
+
+        <p style={{ marginTop: "1rem" }}>❌ Quantum Resistance: 0%</p>
       </div>
 
+      {/* Quantum */}
       <div className="result-box quantum">
         <div className="result-header">
-          <h3>🛡️ QuantumShield PQC</h3>
+          <h3>QuantumShield PQC</h3>
           <span className="tag green">Quantum Safe</span>
         </div>
-        <div className="encrypted-output">{result.quantum}</div>
-        <p>✅ Quantum Resistance: {result.quantum_resistance ?? "100"}%</p>
+
+        <div className="encrypted-output">
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+            {result.quantum || "(no data)"}
+          </pre>
+        </div>
+
+        <p style={{ marginTop: "1rem" }}>
+          ✅ Quantum Resistance: {result.quantum_resistance ?? "100"}%
+        </p>
         <p>⏱️ Processing time: {Math.round((result.processing_time || 0) * 1000)} ms</p>
 
-        {result.ai_optimizations && result.ai_optimizations.length > 0 && (
+        {result.ai_optimizations?.length > 0 && (
           <div style={{ marginTop: "1rem" }}>
-            <h4>AI Optimizations</h4>
+            <h4>AI Optimizations Applied</h4>
             <ul>
               {result.ai_optimizations.map((opt, idx) => (
                 <li key={idx}>
@@ -43,6 +71,7 @@ const QuantResult = ({ result }) => {
     </div>
   );
 };
+
 
 export default function QuantumShield() {
   const [activeTab, setActiveTab] = useState("text");
@@ -216,26 +245,25 @@ export default function QuantumShield() {
 
   // ---------- AI Optimizer: interactive UI ----------
   const [optSecurity, setOptSecurity] = useState(4);
+  const [goal, setGoal] = useState("balanced");
   const [optPerformance, setOptPerformance] = useState(3);
   const [optSize, setOptSize] = useState(3);
   const [optResult, setOptResult] = useState(null);
+// === Updated AI Optimizer handler ===
   const handleOptimize = async () => {
-    setIsLoading(true);
-    setOptResult(null);
-    try {
-      const resp = await axios.post(`${config.API_BASE_URL}/optimize`, {
-        security_level: optSecurity,
-        performance_need: optPerformance,
-        size_constraint: optSize,
-      });
-      setOptResult(resp.data);
-    } catch (err) {
-      console.error("Optimize error:", err);
-      alert("Optimization failed, see console.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+  setOptResult(null);
+  try {
+    const resp = await axios.post(`${config.API_BASE_URL}/optimize`, { goal });
+    setOptResult(resp.data);
+  } catch (err) {
+    console.error("Optimize error:", err);
+    alert("Optimization failed, see console.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // ---------- UI helpers ----------
   const copyToClipboard = async (text) => {
@@ -252,8 +280,8 @@ export default function QuantumShield() {
       <header className="header">
         <nav className="nav">
           <div className="logo">
-            <div className="logo-icon">🛡️</div>
-            <span>QuantumShield</span>
+            <img src={logo} alt="QuantumShield Logo" className="logo-img" />
+  <span>QuantumShield</span>
           </div>
           <div className="nav-links">
             <a href="#text" onClick={() => setActiveTab("text")}>
@@ -391,10 +419,29 @@ export default function QuantumShield() {
             <div style={{ marginTop: "2rem", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "1rem" }}>
               <h3>Decrypt File</h3>
 
-              <div className="input-group">
-                <label>Upload Encrypted (.qshield)</label>
-                <input type="file" accept=".qshield" onChange={(e) => setSelectedDecryptFile(e.target.files[0])} />
-              </div>
+              <div className="file-upload-area" onClick={() => document.getElementById("decryptInput").click()}>
+  <h3>🧩 Upload Encrypted File (.qshield)</h3>
+  <p>Click or drag to select your encrypted file</p>
+  <input
+    type="file"
+    id="decryptInput"
+    accept=".qshield"
+    style={{ display: "none" }}
+    onChange={(e) => setSelectedDecryptFile(e.target.files[0])}
+  />
+</div>
+
+{selectedDecryptFile && (
+  <div className="file-info">
+    <p>
+      <strong>Selected:</strong> {selectedDecryptFile.name}
+    </p>
+    <p>
+      <strong>Size:</strong> {(selectedDecryptFile.size / 1024 / 1024).toFixed(2)} MB
+    </p>
+  </div>
+)}
+
 
               <div className="input-group">
                 <label>Decryption Key</label>
@@ -454,6 +501,34 @@ export default function QuantumShield() {
                 <input type="range" min="1" max="5" value={optSize} onChange={(e) => setOptSize(Number(e.target.value))} />
               </label>
 
+              <div className="input-group">
+  <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold" }}>
+    Optimization Goal: {goal.charAt(0).toUpperCase() + goal.slice(1)}
+  </label>
+  <div
+    style={{
+      background: "rgba(255, 255, 255, 0.08)",
+      borderRadius: "8px",
+      padding: "0.5rem 1rem",
+      display: "inline-block",
+    }}
+  >
+    <select
+  className="goal-dropdown"
+  value={goal}
+  onChange={(e) => setGoal(e.target.value)}
+>
+
+      <option value="balanced">Balanced (Default)</option>
+      <option value="speed">Speed / Low Latency</option>
+      <option value="security">Maximum Security</option>
+      <option value="memory">Memory Efficiency</option>
+      <option value="signatures">Digital Signatures</option>
+    </select>
+  </div>
+</div>
+
+
               <div style={{ display: "flex", gap: "1rem" }}>
                 <button className="btn" onClick={handleOptimize} disabled={isLoading}>
                   {isLoading ? "Searching..." : "Recommend Algorithm"}
@@ -473,12 +548,25 @@ export default function QuantumShield() {
               </div>
 
               {optResult && (
-                <div style={{ marginTop: "1rem" }}>
-                  <h3>Recommended: {optResult.recommended_algorithm}</h3>
-                  <p>{optResult.reason}</p>
-                  <pre style={{ whiteSpace: "pre-wrap", marginTop: "0.5rem" }}>{JSON.stringify(optResult.details, null, 2)}</pre>
-                </div>
-              )}
+  <div style={{ marginTop: "1rem" }}>
+    <h3>Recommended: {optResult.recommended_algorithm}</h3>
+    <p>{optResult.reason}</p>
+
+    {optResult.details && (
+      <div className="card" style={{ marginTop: "1rem", padding: "1.5rem", background: "rgba(0,0,0,0.4)" }}>
+        <h4 style={{ marginBottom: "1rem", color: "var(--primary)" }}>Optimization Breakdown</h4>
+        <ul style={{ listStyle: "none", padding: 0, lineHeight: "1.8" }}>
+          {Object.entries(optResult.details).map(([key, val]) => (
+            <li key={key}>
+              <strong style={{ color: "var(--success)" }}>{key}:</strong> {String(val)}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+)}
+
             </div>
           </div>
         )}

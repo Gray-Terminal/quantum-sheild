@@ -110,9 +110,21 @@ body {
   z-index: 1;
 }
 
+.logo-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow: 0 0 25px var(--glow);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+
 .logo:hover {
   transform: scale(1.05);
 }
+
+
 
 .logo-icon {
   width: 42px;
@@ -862,4 +874,57 @@ html {
 
 .text-gray {
   color: var(--gray);
+}
+
+/* === Quantum Shield dropdown aesthetic === */
+.goal-dropdown {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 180, 0.3);
+  border-radius: 8px;
+  color: #e8fff8;
+  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  outline: none;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(to right, #00ffaa22, #00ffcc11);
+}
+
+.goal-dropdown:hover {
+  border-color: rgba(0, 255, 180, 0.7);
+  box-shadow: 0 0 12px rgba(0, 255, 180, 0.3);
+}
+
+.goal-dropdown:focus {
+  border-color: #00ffcc;
+  box-shadow: 0 0 15px rgba(0, 255, 200, 0.5);
+}
+
+/* === Dropdown list styling (when it opens) === */
+.goal-dropdown option {
+  background-color: #00382e;
+  color: #ccfff5;
+  font-size: 1rem;
+  padding: 10px;
+  border: none;
+}
+
+/* Highlight hovered option for clarity */
+.goal-dropdown option:hover,
+.goal-dropdown option:focus {
+  background-color: #006b5e;
+  color: #ffffff;
+}
+
+/* Optional: glowing outline for entire dropdown on hover */
+.goal-dropdown:focus-visible {
+  outline: none;
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.4);
+}
+
+.goal-dropdown option {
+  background-color: #002c25 !important;
+  color: #eafff5 !important;
 }

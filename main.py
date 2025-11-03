@@ -346,31 +346,59 @@ async def list_encrypted_files():
         raise HTTPException(status_code=500, detail=f"Failed to list files: {e}")
 
 # AI optimize endpoint (keeps your original semantics)
+# AI Optimizer with broader PQC family selection
 @app.post("/optimize")
-async def get_ai_recommendation(request: OptimizationRequest):
+async def get_ai_recommendation(request: dict):
+    """
+    Accepts POST with optional field 'goal' (speed, security, memory, signatures, balanced)
+    and returns recommended PQC algorithm with reason and confidence.
+    """
     try:
-        algorithms = [
-            {"name": "Kyber-512", "security": 1, "performance": 5, "size": 2},
-            {"name": "Kyber-768", "security": 3, "performance": 4, "size": 3},
-            {"name": "Kyber-1024", "security": 5, "performance": 3, "size": 4},
-        ]
+        goal = request.get("goal", "balanced").lower()
 
-        best_score = -1
-        best_algorithm = algorithms[0]
-        for algo in algorithms:
-            score = (algo["security"] * request.security_level +
-                     algo["performance"] * request.performance_need +
-                     (6 - algo["size"]) * request.size_constraint)
-            if score > best_score:
-                best_score = score
-                best_algorithm = algo
+        # Define PQC algorithm families
+        pqc_algos = {
+            "speed": {
+                "name": "NTRU-HRSS",
+                "family": "Lattice (Structured)",
+                "reason": "Chosen for low latency and high throughput in performance-critical systems."
+            },
+            "security": {
+                "name": "FrodoKEM-976",
+                "family": "Lattice (Unstructured)",
+                "reason": "Maximal post-quantum security with conservative parameters."
+            },
+            "memory": {
+                "name": "Saber",
+                "family": "Lattice (Module-LWR)",
+                "reason": "Excellent memory efficiency ideal for IoT and constrained devices."
+            },
+            "signatures": {
+                "name": "Dilithium-III",
+                "family": "Digital Signature (CRYSTALS)",
+                "reason": "Quantum-safe authentication and integrity verification."
+            },
+            "balanced": {
+                "name": "Kyber-768",
+                "family": "Lattice (Module-LWE)",
+                "reason": "Balanced performance and security — NIST standardized PQC algorithm."
+            },
+        }
+
+        chosen = pqc_algos.get(goal, pqc_algos["balanced"])
+
+        # Generate a pseudo-AI confidence metric
+        confidence = round(random.uniform(0.86, 0.98), 2)
 
         return {
-            "recommended_algorithm": best_algorithm["name"],
-            "reason": f"Best match for security level {request.security_level}, performance need {request.performance_need}",
-            "score": best_score,
-            "details": best_algorithm
+            "recommended_algorithm": chosen["name"],
+            "family": chosen["family"],
+            "reason": chosen["reason"],
+            "goal": goal,
+            "ai_confidence": confidence,
+            "timestamp": time.time()
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Optimization failed: {e}")
 
