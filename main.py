@@ -25,6 +25,7 @@ ALLOWED_ORIGINS = [
     "https://quantum-sheild-3asp-mnqyz9r0s-varchas-hvs-projects.vercel.app",
     "http://localhost:5173",
     "https://gleeful-kringle-320853.netlify.app",
+    "https://quantumsheild.netlify.app/",
 ]
 
 app.add_middleware(
